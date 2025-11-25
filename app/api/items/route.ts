@@ -19,8 +19,16 @@ export async function GET() {
     return NextResponse.json({ items }, { status: 200 });
   } catch (error) {
     console.error("Error fetching items:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "Failed to fetch items" },
+      { 
+        error: "Failed to fetch items",
+        details: errorMessage,
+        env: {
+          hasKvUrl: !!process.env.KV_REST_API_URL,
+          hasKvToken: !!process.env.KV_REST_API_TOKEN,
+        }
+      },
       { status: 500 }
     );
   }
@@ -121,8 +129,12 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     console.error("Error creating item:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "Failed to create item" },
+      { 
+        error: "Failed to create item",
+        details: errorMessage
+      },
       { status: 500 }
     );
   }

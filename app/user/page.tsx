@@ -137,7 +137,10 @@ export default function Home() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to submit item");
+        const errorMsg = data.details 
+          ? `${data.error}: ${data.details}` 
+          : data.error || "Failed to submit item";
+        throw new Error(errorMsg);
       }
 
       setMessage({
@@ -155,9 +158,11 @@ export default function Home() {
       setImageFile(null);
       setImagePreview(null);
     } catch (error) {
+      console.error("Submit error:", error);
+      const errorMsg = error instanceof Error ? error.message : "Failed to submit item. Please try again.";
       setMessage({
         type: "error",
-        text: error instanceof Error ? error.message : "Failed to submit item",
+        text: errorMsg,
       });
     } finally {
       setIsSubmitting(false);
