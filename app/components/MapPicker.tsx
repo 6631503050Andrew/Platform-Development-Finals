@@ -31,61 +31,72 @@ export default function MapPicker({
     // Only initialize map on client side
     if (typeof window === "undefined") return;
 
+    // Prevent double initialization
+    if (mapRef.current) return;
+
     // Initialize map
-    if (!mapRef.current) {
-      const map = L.map("map-picker").setView(initialPosition, 13);
+    const map = L.map("map-picker").setView(initialPosition, 13);
 
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      }).addTo(map);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19,
+    }).addTo(map);
 
-      // Add click event to map
-      map.on("click", (e: L.LeafletMouseEvent) => {
-        const { lat, lng } = e.latlng;
+    mapRef.current = map;
 
-        // Remove existing marker if any
-        if (markerRef.current) {
-          markerRef.current.remove();
-        }
+    // Add click event to map
+    map.on("click", (e: L.LeafletMouseEvent) => {
+      const { lat, lng } = e.latlng;
 
-        // Add new marker
-        const marker = L.marker([lat, lng]).addTo(map);
-        markerRef.current = marker;
+      // Remove existing marker if any
+      if (markerRef.current) {
+        map.removeLayer(markerRef.current);
+      }
 
-        // Call callback with coordinates
-        onLocationSelect(lat, lng);
-      });
+      // Add new marker
+      const marker = L.marker([lat, lng]).addTo(map);
+      markerRef.current = marker;
 
-      // Try to get user's current location
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const { latitude, longitude } = position.coords;
-            map.setView([latitude, longitude], 13);
+      // Call callback with coordinates
+      onLocationSelect(lat, lng);
+    });
+
+    // Try to get user's current location
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          
+          // Check if map is still valid before using it
+          if (mapRef.current) {
+            mapRef.current.setView([latitude, longitude], 13);
 
             // Add marker at current location
-            const marker = L.marker([latitude, longitude]).addTo(map);
+            if (markerRef.current) {
+              mapRef.current.removeLayer(markerRef.current);
+            }
+            const marker = L.marker([latitude, longitude]).addTo(mapRef.current);
             markerRef.current = marker;
 
             // Call callback with current location
             onLocationSelect(latitude, longitude);
-          },
-          () => {
-            // If geolocation fails, add marker at default position
-            const marker = L.marker(initialPosition).addTo(map);
+          }
+        },
+        () => {
+          // If geolocation fails, add marker at default position
+          if (mapRef.current) {
+            const marker = L.marker(initialPosition).addTo(mapRef.current);
             markerRef.current = marker;
             onLocationSelect(initialPosition[0], initialPosition[1]);
           }
-        );
-      } else {
-        // No geolocation support, use default position
-        const marker = L.marker(initialPosition).addTo(map);
-        markerRef.current = marker;
-        onLocationSelect(initialPosition[0], initialPosition[1]);
-      }
-
-      mapRef.current = map;
+        }
+      );
+    } else {
+      // No geolocation support, use default position
+      const marker = L.marker(initialPosition).addTo(map);
+      markerRef.current = marker;
+      onLocationSelect(initialPosition[0], initialPosition[1]);
     }
 
     // Cleanup
@@ -93,9 +104,10 @@ export default function MapPicker({
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
+        markerRef.current = null;
       }
     };
-  }, [initialPosition, onLocationSelect]);
+  }, []);
 
   return (
     <div>

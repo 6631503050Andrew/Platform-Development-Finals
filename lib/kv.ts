@@ -7,7 +7,11 @@ export interface FoundItem {
   imageUrl?: string;
   latitude: number;
   longitude: number;
+  foundAt: string;
   createdAt: string;
+  status: "lost" | "claimed";
+  claimedAt: string | null;
+  claimImageUrl?: string | null;
 }
 
 const ITEMS_INDEX_KEY = "items:index";
@@ -19,9 +23,11 @@ export async function saveItem(item: FoundItem): Promise<void> {
   // Save the item
   await kv.set(`item:${item.id}`, item);
 
-  // Add to index
+  // Add to index only if it doesn't exist
   const currentIndex = (await kv.get<string[]>(ITEMS_INDEX_KEY)) || [];
-  await kv.set(ITEMS_INDEX_KEY, [...currentIndex, item.id]);
+  if (!currentIndex.includes(item.id)) {
+    await kv.set(ITEMS_INDEX_KEY, [...currentIndex, item.id]);
+  }
 }
 
 /**
@@ -43,10 +49,10 @@ export async function getAllItems(): Promise<FoundItem[]> {
     }
   }
 
-  // Sort by createdAt descending (newest first)
+  // Sort by foundAt descending (most recently found first)
   return items.sort(
     (a, b) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      new Date(b.foundAt).getTime() - new Date(a.foundAt).getTime()
   );
 }
 

@@ -49,7 +49,7 @@ export function validateDescription(description: string): {
 }
 
 /**
- * Validate image URL
+ * Validate image URL or base64 data
  */
 export function validateImageUrl(url: string): {
   valid: boolean;
@@ -59,8 +59,24 @@ export function validateImageUrl(url: string): {
     return { valid: true }; // Optional field
   }
 
-  const sanitized = sanitizeString(url);
+  const sanitized = url.trim();
 
+  // Check if it's a base64 image
+  if (sanitized.startsWith("data:image/")) {
+    // Validate base64 format
+    if (!sanitized.includes(";base64,")) {
+      return { valid: false, error: "Invalid base64 image format" };
+    }
+    
+    // Check size (max ~7MB base64, which is ~5MB original)
+    if (sanitized.length > 7 * 1024 * 1024) {
+      return { valid: false, error: "Image is too large (max 5MB)" };
+    }
+    
+    return { valid: true };
+  }
+
+  // Otherwise validate as URL
   if (sanitized.length > 500) {
     return { valid: false, error: "Image URL must be 500 characters or less" };
   }
