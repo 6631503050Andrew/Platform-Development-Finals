@@ -34,6 +34,9 @@ export default function Dashboard() {
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [lightboxItem, setLightboxItem] = useState<FoundItem | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingItem, setEditingItem] = useState<FoundItem | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Check authentication
   useEffect(() => {
@@ -104,6 +107,59 @@ export default function Dashboard() {
     setLightboxItem(null);
   };
 
+  const openEditModal = (item: FoundItem) => {
+    setEditingItem({ ...item });
+    setShowEditModal(true);
+  };
+
+  const closeEditModal = () => {
+    setShowEditModal(false);
+    setEditingItem(null);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingItem) return;
+
+    // Validate required fields
+    if (!editingItem.itemName || !editingItem.description) {
+      alert("Item name and description are required");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // Update via API
+      const response = await fetch(`/api/items/${editingItem.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          itemName: editingItem.itemName,
+          description: editingItem.description,
+          finderName: editingItem.finderName,
+          finderEmail: editingItem.finderEmail,
+          finderPhone: editingItem.finderPhone,
+          pickupLocation: editingItem.pickupLocation,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to update item");
+      }
+
+      const { item: updatedItem } = await response.json();
+
+      // Update local state
+      setItems(items.map((item) => (item.id === updatedItem.id ? updatedItem : item)));
+      closeEditModal();
+      alert("Item updated successfully!");
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to update item");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const getTimeRemaining = (claimedAt: string) => {
     const claimDate = new Date(claimedAt);
     const expiryDate = new Date(claimDate.getTime() + 3 * 24 * 60 * 60 * 1000); // 3 days
@@ -150,6 +206,15 @@ export default function Dashboard() {
               </svg>
               Refresh Items
             </button>
+            <Link
+              href="/user"
+              className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 font-semibold shadow-md hover:shadow-lg flex items-center gap-2"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Create New Item
+            </Link>
             <div className="flex-1"></div>
             <div className="bg-gradient-to-r from-purple-50 to-purple-100 px-6 py-3 rounded-lg border-l-4 border-purple-500 shadow-sm">
               <span className="text-purple-900 font-bold text-lg">{items.length}</span>
@@ -339,28 +404,39 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                <button
-                  onClick={() => handleDelete(item.id)}
-                  disabled={deletingId === item.id}
-                  className="w-full bg-gradient-to-r from-red-600 to-red-700 text-white py-3 px-4 rounded-lg hover:from-red-700 hover:to-red-800 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed transition-all duration-200 font-semibold shadow-md hover:shadow-lg flex items-center justify-center gap-2"
-                >
-                  {deletingId === item.id ? (
-                    <>
-                      <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Deleting...
-                    </>
-                  ) : (
-                    <>
-                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                      Delete Item
-                    </>
-                  )}
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => openEditModal(item)}
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 font-semibold shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                  >
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(item.id)}
+                    disabled={deletingId === item.id}
+                    className="flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white py-3 px-4 rounded-lg hover:from-red-700 hover:to-red-800 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed transition-all duration-200 font-semibold shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                  >
+                    {deletingId === item.id ? (
+                      <>
+                        <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Deleting...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Delete
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -457,6 +533,165 @@ export default function Dashboard() {
                 />
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {showEditModal && editingItem && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4"
+          onClick={closeEditModal}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-purple-700 text-white px-6 py-4 rounded-t-2xl flex justify-between items-center">
+              <h3 className="text-2xl font-bold">Edit Item</h3>
+              <button
+                onClick={closeEditModal}
+                className="text-white hover:text-gray-200 transition-colors"
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* Item Details */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Item Name *
+                </label>
+                <input
+                  type="text"
+                  value={editingItem.itemName}
+                  onChange={(e) => setEditingItem({ ...editingItem, itemName: e.target.value })}
+                  maxLength={100}
+                  required
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-purple-600 text-gray-900"
+                  placeholder="e.g., Black iPhone 13"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Description *
+                </label>
+                <textarea
+                  value={editingItem.description}
+                  onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })}
+                  maxLength={500}
+                  required
+                  rows={4}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-purple-600 text-gray-900"
+                  placeholder="Describe the item..."
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  {editingItem.description.length}/500 characters
+                </p>
+              </div>
+
+              {/* Finder Information */}
+              <div className="border-t-2 border-gray-200 pt-4">
+                <h4 className="text-lg font-bold text-gray-900 mb-3">Finder Contact Information</h4>
+                
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Finder Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={editingItem.finderName}
+                      onChange={(e) => setEditingItem({ ...editingItem, finderName: e.target.value })}
+                      maxLength={100}
+                      required
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-purple-600 text-gray-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Finder Email *
+                    </label>
+                    <input
+                      type="email"
+                      value={editingItem.finderEmail}
+                      onChange={(e) => setEditingItem({ ...editingItem, finderEmail: e.target.value })}
+                      required
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-purple-600 text-gray-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Finder Phone *
+                    </label>
+                    <input
+                      type="tel"
+                      value={editingItem.finderPhone}
+                      onChange={(e) => setEditingItem({ ...editingItem, finderPhone: e.target.value })}
+                      maxLength={15}
+                      required
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-purple-600 text-gray-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Pickup Location *
+                    </label>
+                    <textarea
+                      value={editingItem.pickupLocation}
+                      onChange={(e) => setEditingItem({ ...editingItem, pickupLocation: e.target.value })}
+                      maxLength={200}
+                      required
+                      rows={3}
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-purple-600 text-gray-900"
+                      placeholder="Where can the owner pick up this item?"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      {editingItem.pickupLocation.length}/200 characters
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={closeEditModal}
+                  className="flex-1 bg-gray-200 text-gray-800 py-3 px-4 rounded-lg hover:bg-gray-300 transition-all duration-200 font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveEdit}
+                  disabled={isSaving}
+                  className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 text-white py-3 px-4 rounded-lg hover:from-purple-700 hover:to-purple-800 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed transition-all duration-200 font-semibold shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                >
+                  {isSaving ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Save Changes
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
