@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 interface FoundItem {
   id: string;
@@ -23,9 +24,17 @@ interface FoundItem {
   claimerName?: string;
   claimerEmail?: string;
   claimerPhone?: string;
+  finderName: string;
+  finderEmail: string;
+  finderPhone: string;
+  pickupLocation: string;
+  claimerName?: string;
+  claimerEmail?: string;
+  claimerPhone?: string;
 }
 
 export default function Dashboard() {
+  const router = useRouter();
   const router = useRouter();
   const [items, setItems] = useState<FoundItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
