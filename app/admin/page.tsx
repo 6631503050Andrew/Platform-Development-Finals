@@ -24,6 +24,7 @@ export default function Dashboard() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [lightboxItem, setLightboxItem] = useState<FoundItem | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const fetchItems = async () => {
     setIsLoading(true);
@@ -103,6 +104,14 @@ export default function Dashboard() {
     return `${minutes}m`;
   };
 
+  const filteredItems = items.filter((item) => {
+    const query = searchQuery.toLowerCase();
+    return (
+      item.itemName.toLowerCase().includes(query) ||
+      item.description.toLowerCase().includes(query)
+    );
+  });
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-12">
       <div className="mb-8">
@@ -113,20 +122,48 @@ export default function Dashboard() {
           Manage all found items reported in the system
         </p>
 
-        <div className="flex gap-4 items-center">
-          <button
-            onClick={fetchItems}
-            className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white px-6 py-3 rounded-lg hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 font-semibold shadow-md hover:shadow-lg flex items-center gap-2"
-          >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Refresh Items
-          </button>
-          <div className="flex-1"></div>
-          <div className="bg-gradient-to-r from-purple-50 to-purple-100 px-6 py-3 rounded-lg border-l-4 border-purple-500 shadow-sm">
-            <span className="text-purple-900 font-bold text-lg">{items.length}</span>
-            <span className="text-purple-700 ml-2">Total Items</span>
+        <div className="flex flex-col gap-4">
+          <div className="flex gap-4 items-center flex-wrap">
+            <button
+              onClick={fetchItems}
+              className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white px-6 py-3 rounded-lg hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 font-semibold shadow-md hover:shadow-lg flex items-center gap-2"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Refresh Items
+            </button>
+            <div className="flex-1"></div>
+            <div className="bg-gradient-to-r from-purple-50 to-purple-100 px-6 py-3 rounded-lg border-l-4 border-purple-500 shadow-sm">
+              <span className="text-purple-900 font-bold text-lg">{items.length}</span>
+              <span className="text-purple-700 ml-2">Total Items</span>
+            </div>
+          </div>
+
+          {/* Search Bar */}
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <input
+              type="text"
+              placeholder="Search items by name or description..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 rounded-lg border-2 border-gray-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all duration-200 text-gray-900 placeholder-gray-500"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -145,10 +182,12 @@ export default function Dashboard() {
           <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-purple-200 border-t-purple-600"></div>
           <p className="mt-6 text-gray-600 text-lg font-medium">Loading items...</p>
         </div>
-      ) : items.length === 0 ? (
+      ) : filteredItems.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-2xl shadow-xl border-2 border-gray-100">
-          <div className="text-6xl mb-4">📦</div>
-          <p className="text-gray-700 text-xl mb-6 font-semibold">No items found yet</p>
+          <div className="text-6xl mb-4">{searchQuery ? "🔍" : "📦"}</div>
+          <p className="text-gray-700 text-xl mb-6 font-semibold">
+            {searchQuery ? `No items match "${searchQuery}"` : "No items found yet"}
+          </p>
           <Link
             href="/user"
             className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white px-6 py-3 rounded-lg hover:from-indigo-700 hover:to-indigo-800 transition-all duration-200 font-semibold shadow-md hover:shadow-lg"
@@ -161,7 +200,7 @@ export default function Dashboard() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {items.map((item) => (
+          {filteredItems.map((item) => (
             <div
               key={item.id}
               className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 border-2 border-gray-100 hover:border-purple-300 hover:-translate-y-1"

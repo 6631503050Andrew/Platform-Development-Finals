@@ -47,14 +47,6 @@ function AdminNavigation() {
                 <div className="text-xs text-purple-200">Admin Dashboard</div>
               </div>
             </Link>
-            <div className="hidden md:flex items-center space-x-2">
-              <Link
-                href="/admin"
-                className="hover:bg-white/10 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
-              >
-                Dashboard
-              </Link>
-            </div>
           </div>
         </div>
       </div>
