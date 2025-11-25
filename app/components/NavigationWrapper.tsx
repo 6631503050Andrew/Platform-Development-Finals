@@ -54,12 +54,6 @@ function AdminNavigation() {
               >
                 Dashboard
               </Link>
-              <Link
-                href="/user"
-                className="hover:bg-white/10 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
-              >
-                Report Item
-              </Link>
             </div>
           </div>
         </div>
