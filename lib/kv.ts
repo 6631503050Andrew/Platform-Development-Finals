@@ -12,6 +12,15 @@ export interface FoundItem {
   status: "lost" | "claimed";
   claimedAt: string | null;
   claimImageUrl?: string | null;
+  // Personal Data (PDPA)
+  finderName: string;
+  finderEmail: string;
+  finderPhone: string;
+  pickupLocation: string;
+  // Claimer Personal Data (PDPA)
+  claimerName?: string;
+  claimerEmail?: string;
+  claimerPhone?: string;
 }
 
 const ITEMS_INDEX_KEY = "items:index";

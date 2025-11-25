@@ -13,7 +13,7 @@ export async function POST(
   try {
     const { id } = params;
     const body = await request.json();
-    const { claimImageUrl } = body;
+    const { claimImageUrl, claimerName, claimerEmail, claimerPhone } = body;
 
     // Get existing item
     const item = await getItemById(id);
@@ -29,18 +29,51 @@ export async function POST(
       );
     }
 
-    // Validate claim image
-    if (!claimImageUrl) {
+    // Validate claim image (optional, but must be valid if provided)
+    if (claimImageUrl) {
+      const imageValidation = validateImageUrl(claimImageUrl);
+      if (!imageValidation.valid) {
+        return NextResponse.json(
+          { error: imageValidation.error },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate claimer personal data (PDPA)
+    if (!claimerName || claimerName.trim().length === 0) {
       return NextResponse.json(
-        { error: "Proof image is required to claim an item" },
+        { error: "Your name is required (PDPA compliance)" },
         { status: 400 }
       );
     }
 
-    const imageValidation = validateImageUrl(claimImageUrl);
-    if (!imageValidation.valid) {
+    if (!claimerEmail || claimerEmail.trim().length === 0) {
       return NextResponse.json(
-        { error: imageValidation.error },
+        { error: "Your email is required (PDPA compliance)" },
+        { status: 400 }
+      );
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(claimerEmail)) {
+      return NextResponse.json(
+        { error: "Valid email address is required" },
+        { status: 400 }
+      );
+    }
+
+    if (!claimerPhone || claimerPhone.trim().length === 0) {
+      return NextResponse.json(
+        { error: "Your phone number is required (PDPA compliance)" },
+        { status: 400 }
+      );
+    }
+
+    const phoneRegex = /^[0-9]{10,15}$/;
+    if (!phoneRegex.test(claimerPhone.replace(/[\s-]/g, ""))) {
+      return NextResponse.json(
+        { error: "Valid phone number is required (10-15 digits)" },
         { status: 400 }
       );
     }
@@ -50,7 +83,10 @@ export async function POST(
       ...item,
       status: "claimed" as const,
       claimedAt: new Date().toISOString(),
-      claimImageUrl: claimImageUrl,
+      claimImageUrl: claimImageUrl || null,
+      claimerName: claimerName.trim(),
+      claimerEmail: claimerEmail.trim(),
+      claimerPhone: claimerPhone.replace(/[\s-]/g, ""),
     };
 
     // Save updated item
