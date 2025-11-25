@@ -1,8 +1,28 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function LandingPage() {
+  const router = useRouter();
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [loginData, setLoginData] = useState({ username: "", password: "" });
+  const [loginError, setLoginError] = useState("");
+
+  const handleAdminLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError("");
+
+    if (loginData.username === "admin" && loginData.password === "admin123") {
+      // Store auth in sessionStorage
+      sessionStorage.setItem("isAdmin", "true");
+      router.push("/admin");
+    } else {
+      setLoginError("Invalid username or password");
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-br from-blue-50 to-purple-50">
       <div className="max-w-6xl w-full">
@@ -123,9 +143,9 @@ export default function LandingPage() {
           </Link>
 
           {/* Admin/Staff Card */}
-          <Link
-            href="/admin"
-            className="group block bg-white rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 p-8 border-2 border-transparent hover:border-purple-500 hover:-translate-y-2"
+          <button
+            onClick={() => setShowLoginModal(true)}
+            className="group block bg-white rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300 p-8 border-2 border-transparent hover:border-purple-500 hover:-translate-y-2 w-full text-left"
           >
             <div className="flex flex-col items-center text-center">
               <div className="bg-gradient-to-br from-purple-100 to-purple-200 p-6 rounded-full mb-6 group-hover:from-purple-500 group-hover:to-purple-600 transition-all duration-300 shadow-md">
@@ -168,7 +188,7 @@ export default function LandingPage() {
                 </svg>
               </div>
             </div>
-          </Link>
+          </button>
         </div>
 
         <div className="mt-12 text-center">
@@ -176,6 +196,92 @@ export default function LandingPage() {
             Found items are stored securely and can be claimed by their rightful owners
           </p>
         </div>
+
+        {/* Login Modal */}
+        {showLoginModal && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4"
+            onClick={() => {
+              setShowLoginModal(false);
+              setLoginData({ username: "", password: "" });
+              setLoginError("");
+            }}
+          >
+            <div
+              className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-2xl font-bold text-gray-900">Staff Login</h3>
+                <button
+                  onClick={() => {
+                    setShowLoginModal(false);
+                    setLoginData({ username: "", password: "" });
+                    setLoginError("");
+                  }}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-6 rounded">
+                <p className="text-sm text-yellow-800">
+                  <strong>MVP Demo Credentials:</strong>
+                  <br />Username: <code className="bg-yellow-100 px-2 py-1 rounded">admin</code>
+                  <br />Password: <code className="bg-yellow-100 px-2 py-1 rounded">admin123</code>
+                </p>
+              </div>
+
+              <form onSubmit={handleAdminLogin} className="space-y-4">
+                <div>
+                  <label htmlFor="username" className="block text-sm font-semibold text-gray-700 mb-2">
+                    Username
+                  </label>
+                  <input
+                    type="text"
+                    id="username"
+                    value={loginData.username}
+                    onChange={(e) => setLoginData({ ...loginData, username: e.target.value })}
+                    required
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-purple-600 text-gray-900"
+                    placeholder="Enter username"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    id="password"
+                    value={loginData.password}
+                    onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+                    required
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-purple-600 text-gray-900"
+                    placeholder="Enter password"
+                  />
+                </div>
+
+                {loginError && (
+                  <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded">
+                    <p className="text-sm text-red-800">{loginError}</p>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  className="w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white py-3 px-6 rounded-xl hover:from-purple-700 hover:to-purple-800 font-bold text-lg transition-all duration-200 shadow-lg hover:shadow-xl"
+                >
+                  Login
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

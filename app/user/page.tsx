@@ -19,6 +19,10 @@ export default function Home() {
     description: "",
     foundDate: "",
     foundTime: "",
+    finderName: "",
+    finderEmail: "",
+    finderPhone: "",
+    pickupLocation: "",
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -101,6 +105,42 @@ export default function Home() {
       return;
     }
 
+    if (!formData.finderName.trim() || !formData.finderEmail.trim() || !formData.finderPhone.trim()) {
+      setMessage({
+        type: "error",
+        text: "Please provide your contact information.",
+      });
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.finderEmail)) {
+      setMessage({
+        type: "error",
+        text: "Please provide a valid email address.",
+      });
+      return;
+    }
+
+    // Validate phone format (basic check)
+    const phoneRegex = /^[0-9]{10,15}$/;
+    if (!phoneRegex.test(formData.finderPhone.replace(/[\s-]/g, ""))) {
+      setMessage({
+        type: "error",
+        text: "Please provide a valid phone number (10-15 digits).",
+      });
+      return;
+    }
+
+    if (!formData.pickupLocation.trim()) {
+      setMessage({
+        type: "error",
+        text: "Please provide a pickup location.",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -131,6 +171,10 @@ export default function Home() {
           latitude: location.latitude,
           longitude: location.longitude,
           foundAt: foundDateTime,
+          finderName: formData.finderName,
+          finderEmail: formData.finderEmail,
+          finderPhone: formData.finderPhone,
+          pickupLocation: formData.pickupLocation,
         }),
       });
 
@@ -154,6 +198,10 @@ export default function Home() {
         description: "",
         foundDate: "",
         foundTime: "",
+        finderName: "",
+        finderEmail: "",
+        finderPhone: "",
+        pickupLocation: "",
       });
       setImageFile(null);
       setImagePreview(null);
@@ -394,6 +442,114 @@ export default function Home() {
                 </button>
               </div>
             )}
+          </div>
+
+          {/* Personal Information Section (PDPA) */}
+          <div className="border-t-2 border-gray-200 pt-6 mt-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <span>👤</span> Your Contact Information (PDPA Required)
+            </h2>
+            <p className="text-sm text-gray-600 mb-4">
+              This information is collected in compliance with PDPA regulations and will be used to contact you regarding the found item.
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label
+                  htmlFor="finderName"
+                  className="block text-sm font-semibold text-gray-800 mb-2"
+                >
+                  👤 Full Name *
+                </label>
+                <input
+                  type="text"
+                  id="finderName"
+                  value={formData.finderName}
+                  onChange={(e) =>
+                    setFormData({ ...formData, finderName: e.target.value })
+                  }
+                  maxLength={100}
+                  required
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-red-600 text-gray-900 transition-all duration-200 shadow-sm hover:border-red-300"
+                  placeholder="Enter your full name"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="finderEmail"
+                  className="block text-sm font-semibold text-gray-800 mb-2"
+                >
+                  📧 Email Address *
+                </label>
+                <input
+                  type="email"
+                  id="finderEmail"
+                  value={formData.finderEmail}
+                  onChange={(e) =>
+                    setFormData({ ...formData, finderEmail: e.target.value })
+                  }
+                  maxLength={100}
+                  required
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-red-600 text-gray-900 transition-all duration-200 shadow-sm hover:border-red-300"
+                  placeholder="your.email@example.com"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="finderPhone"
+                  className="block text-sm font-semibold text-gray-800 mb-2"
+                >
+                  📱 Phone Number *
+                </label>
+                <input
+                  type="tel"
+                  id="finderPhone"
+                  value={formData.finderPhone}
+                  onChange={(e) =>
+                    setFormData({ ...formData, finderPhone: e.target.value })
+                  }
+                  maxLength={15}
+                  required
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-red-600 text-gray-900 transition-all duration-200 shadow-sm hover:border-red-300"
+                  placeholder="0812345678"
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  Enter 10-15 digits without spaces or dashes
+                </p>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="pickupLocation"
+                  className="block text-sm font-semibold text-gray-800 mb-2"
+                >
+                  📍 Pickup Location *
+                </label>
+                <textarea
+                  id="pickupLocation"
+                  value={formData.pickupLocation}
+                  onChange={(e) =>
+                    setFormData({ ...formData, pickupLocation: e.target.value })
+                  }
+                  maxLength={200}
+                  required
+                  rows={3}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-red-600 text-gray-900 transition-all duration-200 shadow-sm hover:border-red-300"
+                  placeholder="e.g., Security Office, Building 1, Room 101, or specific location where item can be collected"
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  Specify where the owner can pick up this item ({formData.pickupLocation.length}/200 characters)
+                </p>
+              </div>
+
+              <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <strong>Privacy Notice:</strong> Your personal information will be stored securely and used only for the purpose of reuniting lost items with their owners. We comply with PDPA regulations to protect your data.
+                </p>
+              </div>
+            </div>
           </div>
 
           <button

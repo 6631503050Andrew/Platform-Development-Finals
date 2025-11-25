@@ -15,6 +15,13 @@ interface FoundItem {
   status: "lost" | "claimed";
   claimedAt: string | null;
   claimImageUrl?: string | null;
+  finderName: string;
+  finderEmail: string;
+  finderPhone: string;
+  pickupLocation: string;
+  claimerName?: string;
+  claimerEmail?: string;
+  claimerPhone?: string;
 }
 
 export default function UserDashboard() {
@@ -29,6 +36,11 @@ export default function UserDashboard() {
   const [claimImagePreview, setClaimImagePreview] = useState<string | null>(null);
   const [showClaimModal, setShowClaimModal] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [claimerData, setClaimerData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+  });
 
   const fetchItems = async () => {
     setIsLoading(true);
@@ -110,8 +122,27 @@ export default function UserDashboard() {
   };
 
   const handleSubmitClaim = async () => {
-    if (!selectedItemId || !claimImagePreview) {
-      alert("Please upload a proof image");
+    if (!selectedItemId) {
+      alert("No item selected");
+      return;
+    }
+
+    if (!claimerData.name.trim() || !claimerData.email.trim() || !claimerData.phone.trim()) {
+      alert("Please provide your contact information");
+      return;
+    }
+
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(claimerData.email)) {
+      alert("Please provide a valid email address");
+      return;
+    }
+
+    // Validate phone
+    const phoneRegex = /^[0-9]{10,15}$/;
+    if (!phoneRegex.test(claimerData.phone.replace(/[\s-]/g, ""))) {
+      alert("Please provide a valid phone number (10-15 digits)");
       return;
     }
 
@@ -120,7 +151,12 @@ export default function UserDashboard() {
       const response = await fetch(`/api/items/${selectedItemId}/claim`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ claimImageUrl: claimImagePreview }),
+        body: JSON.stringify({ 
+          claimImageUrl: claimImagePreview || null,
+          claimerName: claimerData.name,
+          claimerEmail: claimerData.email,
+          claimerPhone: claimerData.phone,
+        }),
       });
 
       if (!response.ok) {
@@ -136,6 +172,7 @@ export default function UserDashboard() {
       setSelectedItemId(null);
       setClaimImageFile(null);
       setClaimImagePreview(null);
+      setClaimerData({ name: "", email: "", phone: "" });
       
       alert("Item claimed successfully! The item will expire in 3 days.");
     } catch (err) {
@@ -280,6 +317,12 @@ export default function UserDashboard() {
                     </a>
                   </p>
                   <p>🕒 Found: {new Date(item.foundAt).toLocaleString()}</p>
+                  <div className="pt-2 border-t border-gray-200 mt-2">
+                    <p className="font-semibold text-green-700 mb-1">📦 Pickup Location:</p>
+                    <p className="text-gray-700 text-sm bg-green-50 p-2 rounded border-l-2 border-green-500">
+                      {item.pickupLocation}
+                    </p>
+                  </div>
                 </div>
                 
                 {/* Claim Button */}
@@ -308,6 +351,7 @@ export default function UserDashboard() {
             setShowClaimModal(false);
             setClaimImagePreview(null);
             setClaimImageFile(null);
+            setClaimerData({ name: "", email: "", phone: "" });
           }}
         >
           <div
@@ -321,6 +365,7 @@ export default function UserDashboard() {
                   setShowClaimModal(false);
                   setClaimImagePreview(null);
                   setClaimImageFile(null);
+                  setClaimerData({ name: "", email: "", phone: "" });
                 }}
                 className="text-gray-500 hover:text-gray-700"
               >
@@ -331,13 +376,76 @@ export default function UserDashboard() {
             </div>
 
             <p className="text-gray-600 mb-4">
-              Please upload a photo of the item as proof of ownership.
+              Please provide your contact information. Optionally, upload an old photo of the item to help verify ownership.
             </p>
+
+            {/* Personal Information Section */}
+            <div className="mb-4 space-y-3">
+              <h4 className="text-sm font-semibold text-gray-800 mb-2">👤 Your Contact Information (PDPA Required)</h4>
+              
+              <div>
+                <label htmlFor="claimerName" className="block text-xs font-semibold text-gray-700 mb-1">
+                  Full Name *
+                </label>
+                <input
+                  type="text"
+                  id="claimerName"
+                  value={claimerData.name}
+                  onChange={(e) => setClaimerData({ ...claimerData, name: e.target.value })}
+                  maxLength={100}
+                  required
+                  className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-600 focus:border-green-600 text-gray-900 text-sm"
+                  placeholder="Enter your full name"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="claimerEmail" className="block text-xs font-semibold text-gray-700 mb-1">
+                  Email Address *
+                </label>
+                <input
+                  type="email"
+                  id="claimerEmail"
+                  value={claimerData.email}
+                  onChange={(e) => setClaimerData({ ...claimerData, email: e.target.value })}
+                  maxLength={100}
+                  required
+                  className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-600 focus:border-green-600 text-gray-900 text-sm"
+                  placeholder="your.email@example.com"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="claimerPhone" className="block text-xs font-semibold text-gray-700 mb-1">
+                  Phone Number *
+                </label>
+                <input
+                  type="tel"
+                  id="claimerPhone"
+                  value={claimerData.phone}
+                  onChange={(e) => setClaimerData({ ...claimerData, phone: e.target.value })}
+                  maxLength={15}
+                  required
+                  className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-green-600 focus:border-green-600 text-gray-900 text-sm"
+                  placeholder="0812345678"
+                />
+                <p className="text-xs text-gray-500 mt-1">10-15 digits without spaces</p>
+              </div>
+
+              <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded-lg">
+                <p className="text-xs text-blue-800">
+                  <strong>Privacy Notice:</strong> Your information will be used to verify ownership and facilitate item return.
+                </p>
+              </div>
+            </div>
 
             <div className="mb-4">
               <label className="block text-sm font-semibold text-gray-800 mb-2">
-                📷 Proof Image *
+                📷 Proof of Ownership (Optional)
               </label>
+              <p className="text-xs text-gray-600 mb-3 bg-yellow-50 border-l-4 border-yellow-500 p-2 rounded">
+                <strong>Tip:</strong> Upload an old photo that shows you owned this item (e.g., a photo of you using/wearing it, receipt, or any proof from before it was lost). This helps verify your ownership claim.
+              </p>
               <div className="flex gap-3">
                 <label
                   htmlFor="claimImageFile"
@@ -400,7 +508,7 @@ export default function UserDashboard() {
 
             <button
               onClick={handleSubmitClaim}
-              disabled={!claimImagePreview || claimingId !== null}
+              disabled={claimingId !== null}
               className="w-full bg-gradient-to-r from-green-600 to-green-700 text-white py-3 px-6 rounded-xl hover:from-green-700 hover:to-green-800 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed font-bold text-lg transition-all duration-200 shadow-lg hover:shadow-xl"
             >
               {claimingId ? "Claiming..." : "Submit Claim"}
@@ -438,67 +546,41 @@ export default function UserDashboard() {
 
           {/* Content */}
           <div className="max-w-7xl w-full" onClick={(e) => e.stopPropagation()}>
-            {lightboxItem.status === "claimed" && lightboxItem.claimImageUrl ? (
-              /* Side by Side View for Claimed Items */
-              <div className="grid md:grid-cols-2 gap-6">
-                {/* Original Found Item */}
-                <div className="bg-white rounded-2xl overflow-hidden shadow-2xl">
-                  <div className="bg-red-600 text-white px-4 py-3 font-bold text-center">
-                    📦 Original Found Item
-                  </div>
-                  <div className="p-4">
-                    <img
-                      src={lightboxItem.imageUrl}
-                      alt={lightboxItem.itemName}
-                      className="w-full h-96 object-contain bg-gray-100 rounded-lg"
-                    />
-                    <div className="mt-4 text-gray-800">
-                      <h3 className="text-xl font-bold mb-2">{lightboxItem.itemName}</h3>
-                      <p className="text-sm text-gray-600">{lightboxItem.description}</p>
-                      <p className="text-sm text-gray-500 mt-2">
-                        🕒 Found: {new Date(lightboxItem.foundAt).toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
+            {/* Single Image View for Regular Users */}
+            <div className="flex items-center justify-center">
+              <div className="bg-white rounded-2xl overflow-hidden shadow-2xl max-w-4xl">
+                <div className="bg-red-600 text-white px-4 py-3 font-bold text-center">
+                  📦 Found Item
                 </div>
-
-                {/* Claimed Proof Image */}
-                <div className="bg-white rounded-2xl overflow-hidden shadow-2xl">
-                  <div className="bg-green-600 text-white px-4 py-3 font-bold text-center">
-                    ✅ Claim Proof Image
-                  </div>
-                  <div className="p-4">
-                    <img
-                      src={lightboxItem.claimImageUrl}
-                      alt="Claim proof"
-                      className="w-full h-96 object-contain bg-gray-100 rounded-lg"
-                    />
-                    <div className="mt-4 text-gray-800">
-                      <p className="text-sm text-gray-600">
-                        This image was submitted as proof of ownership when claiming the item.
-                      </p>
-                      <p className="text-sm text-gray-500 mt-2">
-                        🕒 Claimed: {new Date(lightboxItem.claimedAt!).toLocaleString()}
-                      </p>
-                      {lightboxItem.claimedAt && (
-                        <p className="text-sm font-semibold text-yellow-600 mt-2">
+                <div className="p-4">
+                  <img
+                    src={lightboxImage}
+                    alt="Full size"
+                    className="w-full max-h-[70vh] object-contain bg-gray-100 rounded-lg"
+                  />
+                  <div className="mt-4 text-gray-800">
+                    <h3 className="text-xl font-bold mb-2">{lightboxItem.itemName}</h3>
+                    <p className="text-sm text-gray-600">{lightboxItem.description}</p>
+                    <p className="text-sm text-gray-500 mt-2">
+                      🕒 Found: {new Date(lightboxItem.foundAt).toLocaleString()}
+                    </p>
+                    {lightboxItem.status === "claimed" && lightboxItem.claimedAt && (
+                      <div className="mt-2">
+                        <span className="inline-block bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+                          CLAIMED
+                        </span>
+                        <p className="text-sm text-gray-500 mt-1">
+                          🕒 Claimed: {new Date(lightboxItem.claimedAt).toLocaleString()}
+                        </p>
+                        <p className="text-sm font-semibold text-yellow-600 mt-1">
                           ⏱ Expires in: {getTimeRemaining(lightboxItem.claimedAt)}
                         </p>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
-            ) : (
-              /* Single Image View for Unclaimed Items */
-              <div className="flex items-center justify-center">
-                <img
-                  src={lightboxImage}
-                  alt="Full size"
-                  className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
-                />
-              </div>
-            )}
+            </div>
           </div>
         </div>
       )}

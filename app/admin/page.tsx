@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface FoundItem {
   id: string;
@@ -15,9 +16,17 @@ interface FoundItem {
   status: "lost" | "claimed";
   claimedAt: string | null;
   claimImageUrl?: string | null;
+  finderName: string;
+  finderEmail: string;
+  finderPhone: string;
+  pickupLocation: string;
+  claimerName?: string;
+  claimerEmail?: string;
+  claimerPhone?: string;
 }
 
 export default function Dashboard() {
+  const router = useRouter();
   const [items, setItems] = useState<FoundItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string>("");
@@ -25,6 +34,14 @@ export default function Dashboard() {
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [lightboxItem, setLightboxItem] = useState<FoundItem | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Check authentication
+  useEffect(() => {
+    const isAdmin = sessionStorage.getItem("isAdmin");
+    if (!isAdmin) {
+      router.push("/landing");
+    }
+  }, [router]);
 
   const fetchItems = async () => {
     setIsLoading(true);
@@ -271,6 +288,57 @@ export default function Dashboard() {
                     Reported: {new Date(item.createdAt).toLocaleString()}
                   </p>
                 </div>
+
+                {/* PDPA Personal Data Section */}
+                <div className="border-t border-gray-200 pt-4 mb-4">
+                  <p className="text-xs font-semibold text-purple-700 mb-2">PDPA Contact Information:</p>
+                  <div className="space-y-3">
+                    {/* Finder Information */}
+                    <div className="bg-purple-50 p-3 rounded-lg">
+                      <p className="text-xs font-bold text-purple-800 mb-1">Finder (Person who found item):</p>
+                      <div className="space-y-1 text-xs text-gray-600">
+                        <p className="flex items-start gap-2">
+                          <span className="font-semibold min-w-[60px]">Name:</span>
+                          <span className="break-words">{item.finderName}</span>
+                        </p>
+                        <p className="flex items-start gap-2">
+                          <span className="font-semibold min-w-[60px]">Email:</span>
+                          <span className="break-all">{item.finderEmail}</span>
+                        </p>
+                        <p className="flex items-start gap-2">
+                          <span className="font-semibold min-w-[60px]">Phone:</span>
+                          <span>{item.finderPhone}</span>
+                        </p>
+                        <p className="flex items-start gap-2">
+                          <span className="font-semibold min-w-[60px]">Pickup:</span>
+                          <span className="break-words">{item.pickupLocation}</span>
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* Claimer Information (if claimed) */}
+                    {item.status === "claimed" && item.claimerName && (
+                      <div className="bg-green-50 p-3 rounded-lg border-l-4 border-green-500">
+                        <p className="text-xs font-bold text-green-800 mb-1">Claimer (Person claiming item):</p>
+                        <div className="space-y-1 text-xs text-gray-600">
+                          <p className="flex items-start gap-2">
+                            <span className="font-semibold min-w-[60px]">Name:</span>
+                            <span className="break-words">{item.claimerName}</span>
+                          </p>
+                          <p className="flex items-start gap-2">
+                            <span className="font-semibold min-w-[60px]">Email:</span>
+                            <span className="break-all">{item.claimerEmail}</span>
+                          </p>
+                          <p className="flex items-start gap-2">
+                            <span className="font-semibold min-w-[60px]">Phone:</span>
+                            <span>{item.claimerPhone}</span>
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 <button
                   onClick={() => handleDelete(item.id)}
                   disabled={deletingId === item.id}

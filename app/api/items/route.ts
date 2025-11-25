@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const { itemName, description, imageUrl, latitude, longitude, foundAt } = body;
+    const { itemName, description, imageUrl, latitude, longitude, foundAt, finderName, finderEmail, finderPhone, pickupLocation } = body;
 
     // Validate itemName
     const itemNameValidation = validateItemName(itemName);
@@ -105,6 +105,61 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate personal data (PDPA required fields)
+    if (!finderName || finderName.trim().length === 0) {
+      return NextResponse.json(
+        { error: "Finder name is required (PDPA compliance)" },
+        { status: 400 }
+      );
+    }
+
+    if (!finderEmail || finderEmail.trim().length === 0) {
+      return NextResponse.json(
+        { error: "Finder email is required (PDPA compliance)" },
+        { status: 400 }
+      );
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(finderEmail)) {
+      return NextResponse.json(
+        { error: "Valid email address is required" },
+        { status: 400 }
+      );
+    }
+
+    if (!finderPhone || finderPhone.trim().length === 0) {
+      return NextResponse.json(
+        { error: "Finder phone number is required (PDPA compliance)" },
+        { status: 400 }
+      );
+    }
+
+    // Validate phone format
+    const phoneRegex = /^[0-9]{10,15}$/;
+    if (!phoneRegex.test(finderPhone.replace(/[\s-]/g, ""))) {
+      return NextResponse.json(
+        { error: "Valid phone number is required (10-15 digits)" },
+        { status: 400 }
+      );
+    }
+
+    // Validate pickup location
+    if (!pickupLocation || pickupLocation.trim().length === 0) {
+      return NextResponse.json(
+        { error: "Pickup location is required" },
+        { status: 400 }
+      );
+    }
+
+    if (pickupLocation.trim().length > 200) {
+      return NextResponse.json(
+        { error: "Pickup location must be 200 characters or less" },
+        { status: 400 }
+      );
+    }
+
     // Create item
     const item: FoundItem = {
       id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -118,6 +173,10 @@ export async function POST(request: NextRequest) {
       status: "lost" as const, // New field: "lost" or "claimed"
       claimedAt: null,
       claimImageUrl: null,
+      finderName: sanitizeString(finderName),
+      finderEmail: sanitizeString(finderEmail),
+      finderPhone: sanitizeString(finderPhone.replace(/[\s-]/g, "")),
+      pickupLocation: sanitizeString(pickupLocation),
     };
 
     // Save to KV
