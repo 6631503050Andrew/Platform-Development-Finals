@@ -1,6 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import dynamic from "next/dynamic";
+
+// Dynamically import MapPicker to avoid SSR issues with Leaflet
+const MapPicker = dynamic(() => import("./components/MapPicker"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-96 rounded-lg border-2 border-gray-300 bg-gray-100 flex items-center justify-center">
+      <p className="text-gray-500">Loading map...</p>
+    </div>
+  ),
+});
 
 export default function Home() {
   const [formData, setFormData] = useState({
@@ -12,34 +23,15 @@ export default function Home() {
     latitude: number;
     longitude: number;
   } | null>(null);
-  const [locationError, setLocationError] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{
     type: "success" | "error";
     text: string;
   } | null>(null);
 
-  useEffect(() => {
-    // Get geolocation on component mount
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setLocation({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          });
-          setLocationError("");
-        },
-        (error) => {
-          setLocationError(
-            `Geolocation error: ${error.message}. Please enable location services.`
-          );
-        }
-      );
-    } else {
-      setLocationError("Geolocation is not supported by your browser.");
-    }
-  }, []);
+  const handleLocationSelect = (latitude: number, longitude: number) => {
+    setLocation({ latitude, longitude });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,18 +114,18 @@ export default function Home() {
           </div>
         )}
 
-        {locationError && (
-          <div className="mb-6 p-4 rounded-md bg-yellow-50 text-yellow-800 border border-yellow-200">
-            {locationError}
-          </div>
-        )}
-
-        {location && (
-          <div className="mb-6 p-4 rounded-md bg-blue-50 text-blue-800 border border-blue-200">
-            ✓ Location detected: {location.latitude.toFixed(6)},{" "}
-            {location.longitude.toFixed(6)}
-          </div>
-        )}
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Location *
+          </label>
+          <MapPicker onLocationSelect={handleLocationSelect} />
+          {location && (
+            <div className="mt-3 p-3 rounded-md bg-blue-50 text-blue-800 border border-blue-200 text-sm">
+              ✓ Selected location: {location.latitude.toFixed(6)},{" "}
+              {location.longitude.toFixed(6)}
+            </div>
+          )}
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
